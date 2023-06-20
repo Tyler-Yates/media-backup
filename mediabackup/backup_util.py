@@ -19,6 +19,7 @@ class BackupUtil:
         self.output_path_to_file_name_to_existing_file_data: dict[str, dict[str, list[FileData]]] = defaultdict(
             lambda: defaultdict(list))
 
+        self.copies = []
         self.skips = []
         self.errors = []
 
@@ -62,6 +63,7 @@ class BackupUtil:
         self.logger_util.write(f"Copying file {file_to_backup.absolute_path} to {output_path}")
         pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
         shutil.copy2(file_to_backup.absolute_path, output_path)
+        self.copies.append(file_to_backup.absolute_path)
 
         # Make sure the copy was successful
         copied_file = FileData(os.path.join(output_path, file_to_backup.file_name))
@@ -104,13 +106,15 @@ class BackupUtil:
     def perform_backup(self):
         self.year_to_paths_to_backup.clear()
         self.output_path_to_file_name_to_existing_file_data.clear()
+        self.copies.clear()
         self.skips.clear()
         self.errors.clear()
 
         for input_path in self.input_paths:
             self._backup_path(input_path)
 
-        self.logger_util.write(f"\nSkips: {len(self.skips)}")
+        self.logger_util.write(f"\nCopies: {len(self.copies)}")
+        self.logger_util.write(f"Skips: {len(self.skips)}")
         self.logger_util.write(f"Errors: {len(self.errors)}")
 
         if len(self.errors) > 0:
