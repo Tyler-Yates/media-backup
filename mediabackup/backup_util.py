@@ -46,9 +46,12 @@ class BackupUtil:
     def _backup_file(self, year: int, file_to_backup: FileData):
         for output_path in self._get_output_paths_for_file(year, file_to_backup):
             # Make sure we have not already copied the file
-            for existing_file in self.output_path_to_file_name_to_existing_file_data[output_path].get(file_to_backup.file_name, []):
+            existing_files = self.output_path_to_file_name_to_existing_file_data[output_path]\
+                .get(file_to_backup.file_name, [])
+            for existing_file in existing_files:
                 if existing_file.size == file_to_backup.size and existing_file.checksum == file_to_backup.checksum:
-                    self.logger_util.write(f"File {existing_file.absolute_path} already exists so skipping backup of {file_to_backup.absolute_path}")
+                    self.logger_util.write(f"File {existing_file.absolute_path} already exists"
+                                           f" so skipping backup of {file_to_backup.absolute_path}")
                     return
                 else:
                     print(f"File {existing_file.absolute_path} already exists but appears to be a different file.")
@@ -61,7 +64,8 @@ class BackupUtil:
             # Make sure the copy was successful
             copied_file = FileData(os.path.join(output_path, file_to_backup.file_name))
             if file_to_backup.size != copied_file.size or file_to_backup.checksum != copied_file.checksum:
-                self.logger_util.write(f"ERROR! Copied file {copied_file.absolute_path} is not equal to original file {file_to_backup.absolute_path}")
+                self.logger_util.write(f"ERROR! Copied file {copied_file.absolute_path} is not"
+                                       f" equal to original file {file_to_backup.absolute_path}")
                 self.errors.append(file_to_backup.absolute_path)
 
     def _backup_path(self, input_path: str):

@@ -1,0 +1,9 @@
+{
+  "input_paths": [
+    "C:\\User\\Pictures"
+  ],
+  "output_paths": [
+    "D:\\User\\Pictures",
+    "E:\\User\\Pictures"
+  ]
+}
