@@ -18,6 +18,8 @@ class BackupUtil:
         self.year_to_paths_to_backup: dict[int, list[FileData]] = defaultdict(list)
         self.output_path_to_file_name_to_existing_file_data: dict[str, dict[str, list[FileData]]] = defaultdict(
             lambda: defaultdict(list))
+
+        self.skips = []
         self.errors = []
 
     def _collect_file(self, absolute_path: str):
@@ -43,30 +45,34 @@ class BackupUtil:
             for templated_path in templated_paths:
                 self._collect_existing_files_for_templated_path(templated_path)
 
+    def _backup_file_to_path(self, output_path: str, year: int, file_to_backup: FileData):
+        # Make sure we have not already copied the file
+        existing_files = self.output_path_to_file_name_to_existing_file_data[output_path] \
+            .get(file_to_backup.file_name, [])
+        for existing_file in existing_files:
+            if existing_file.size == file_to_backup.size and existing_file.checksum == file_to_backup.checksum:
+                self.logger_util.write(f"File {existing_file.absolute_path} already exists"
+                                       f" so skipping backup of {file_to_backup.absolute_path}")
+                self.skips.append(file_to_backup.absolute_path)
+                return
+            else:
+                print(f"File {existing_file.absolute_path} already exists but appears to be a different file.")
+
+        # If we have gotten to this point, we need to copy the file.
+        self.logger_util.write(f"Copying file {file_to_backup.absolute_path} to {output_path}")
+        pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
+        shutil.copy2(file_to_backup.absolute_path, output_path)
+
+        # Make sure the copy was successful
+        copied_file = FileData(os.path.join(output_path, file_to_backup.file_name))
+        if file_to_backup.size != copied_file.size or file_to_backup.checksum != copied_file.checksum:
+            self.logger_util.write(f"ERROR! Copied file {copied_file.absolute_path} is not"
+                                   f" equal to original file {file_to_backup.absolute_path}")
+            self.errors.append(file_to_backup.absolute_path)
+
     def _backup_file(self, year: int, file_to_backup: FileData):
         for output_path in self._get_output_paths_for_file(year, file_to_backup):
-            # Make sure we have not already copied the file
-            existing_files = self.output_path_to_file_name_to_existing_file_data[output_path]\
-                .get(file_to_backup.file_name, [])
-            for existing_file in existing_files:
-                if existing_file.size == file_to_backup.size and existing_file.checksum == file_to_backup.checksum:
-                    self.logger_util.write(f"File {existing_file.absolute_path} already exists"
-                                           f" so skipping backup of {file_to_backup.absolute_path}")
-                    return
-                else:
-                    print(f"File {existing_file.absolute_path} already exists but appears to be a different file.")
-
-            # If we have gotten to this point, we need to copy the file.
-            self.logger_util.write(f"Copying file {file_to_backup.absolute_path} to {output_path}")
-            pathlib.Path(output_path).mkdir(parents=True, exist_ok=True)
-            shutil.copy2(file_to_backup.absolute_path, output_path)
-
-            # Make sure the copy was successful
-            copied_file = FileData(os.path.join(output_path, file_to_backup.file_name))
-            if file_to_backup.size != copied_file.size or file_to_backup.checksum != copied_file.checksum:
-                self.logger_util.write(f"ERROR! Copied file {copied_file.absolute_path} is not"
-                                       f" equal to original file {file_to_backup.absolute_path}")
-                self.errors.append(file_to_backup.absolute_path)
+            self._backup_file_to_path(output_path, year, file_to_backup)
 
     def _backup_path(self, input_path: str):
         self.logger_util.write(f"Processing input path {input_path}...")
@@ -98,12 +104,14 @@ class BackupUtil:
     def perform_backup(self):
         self.year_to_paths_to_backup.clear()
         self.output_path_to_file_name_to_existing_file_data.clear()
+        self.skips.clear()
         self.errors.clear()
 
         for input_path in self.input_paths:
             self._backup_path(input_path)
 
-        self.logger_util.write(f"\nErrors: {len(self.errors)}")
+        self.logger_util.write(f"\nSkips: {len(self.skips)}")
+        self.logger_util.write(f"Errors: {len(self.errors)}")
 
         if len(self.errors) > 0:
             sys.exit(1)
