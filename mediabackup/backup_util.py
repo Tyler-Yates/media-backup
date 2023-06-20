@@ -1,6 +1,7 @@
 import os
 import pathlib
 import shutil
+import sys
 from collections import defaultdict
 
 from mediabackup import file_util
@@ -99,3 +100,6 @@ class BackupUtil:
             self._backup_path(input_path)
 
         self.logger_util.write(f"\nErrors: {len(self.errors)}")
+
+        if len(self.errors) > 0:
+            sys.exit(1)
