@@ -8,6 +8,7 @@ from mediabackup import file_util
 class FileData:
     def __init__(self, absolute_path: str):
         self.absolute_path = absolute_path
+        self.file_name = os.path.basename(self.absolute_path)
 
     def __str__(self):
         return f"[{self.absolute_path}, Size: {self.size}, Checksum: {self.checksum}," \
