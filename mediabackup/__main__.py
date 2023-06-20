@@ -5,6 +5,7 @@ import requests as requests
 
 from mediabackup.backup_util import BackupUtil
 from mediabackup.logger_util import LoggerUtil
+from mediabackup.recency_util import RecencyUtil
 
 NEWLINE = "\n"
 
@@ -25,9 +26,13 @@ def main():
     print(f"Backing up to the following paths:\n{NEWLINE.join(output_paths)}\n")
 
     logger_util = LoggerUtil()
+    recency_util = RecencyUtil()
     with logger_util:
-        backup_util = BackupUtil(input_paths=input_paths, output_paths=output_paths, logger_util=logger_util)
+        backup_util = BackupUtil(input_paths=input_paths, output_paths=output_paths, logger_util=logger_util,
+                                 recency_util=recency_util)
         backup_util.perform_backup()
+
+    recency_util.clean_records()
 
     if healthcheck_url:
         print(f"Pinging healthcheck URL {healthcheck_url}")

@@ -7,13 +7,16 @@ from collections import defaultdict
 from mediabackup import file_util
 from mediabackup.file_data import FileData
 from mediabackup.logger_util import LoggerUtil
+from mediabackup.recency_util import RecencyUtil
 
 
 class BackupUtil:
-    def __init__(self, input_paths: list[str], output_paths: list[str], logger_util: LoggerUtil):
+    def __init__(self, input_paths: list[str], output_paths: list[str], logger_util: LoggerUtil,
+                 recency_util: RecencyUtil):
         self.input_paths = input_paths
         self.output_paths = output_paths
         self.logger_util = logger_util
+        self.recency_util = recency_util
 
         self.year_to_paths_to_backup: dict[int, list[FileData]] = defaultdict(list)
         self.output_path_to_file_name_to_existing_file_data: dict[str, dict[str, list[FileData]]] = defaultdict(
@@ -28,6 +31,13 @@ class BackupUtil:
             print(f"Ignoring {absolute_path}")
             return
 
+        # Skip processing a file that we already processed recently
+        file_date = FileData(absolute_path)
+        if self.recency_util.file_processed_recently(file_date):
+            print(f"Skipping file {absolute_path} as we have already processed recently")
+            self.skips.append(absolute_path)
+            return
+
         print(f"Found {absolute_path}")
         year_taken = file_util.get_file_year(absolute_path)
         self.year_to_paths_to_backup[year_taken].append(FileData(absolute_path))
@@ -36,8 +46,8 @@ class BackupUtil:
         for root, dirs, files in os.walk(templated_path):
             for filename in files:
                 absolute_path = os.path.join(root, filename)
-                self.output_path_to_file_name_to_existing_file_data[templated_path][filename]\
-                    .append(FileData(absolute_path))
+                file_date = FileData(absolute_path)
+                self.output_path_to_file_name_to_existing_file_data[templated_path][filename].append(file_date)
 
     def _collect_existing_files(self):
         for year in self.year_to_paths_to_backup.keys():
@@ -46,7 +56,7 @@ class BackupUtil:
             for templated_path in templated_paths:
                 self._collect_existing_files_for_templated_path(templated_path)
 
-    def _backup_file_to_path(self, output_path: str, year: int, file_to_backup: FileData):
+    def _backup_file_to_path(self, output_path: str, file_to_backup: FileData):
         # Make sure we have not already copied the file
         existing_files = self.output_path_to_file_name_to_existing_file_data[output_path] \
             .get(file_to_backup.file_name, [])
@@ -54,6 +64,7 @@ class BackupUtil:
             if existing_file.size == file_to_backup.size and existing_file.checksum == file_to_backup.checksum:
                 self.logger_util.write(f"File {existing_file.absolute_path} already exists"
                                        f" so skipping backup of {file_to_backup.absolute_path}")
+                self.recency_util.record_file_processed(file_to_backup)
                 self.skips.append(file_to_backup.absolute_path)
                 return
             else:
@@ -72,9 +83,11 @@ class BackupUtil:
                                    f" equal to original file {file_to_backup.absolute_path}")
             self.errors.append(file_to_backup.absolute_path)
 
+        self.recency_util.record_file_processed(file_to_backup)
+
     def _backup_file(self, year: int, file_to_backup: FileData):
         for output_path in self._get_output_paths_for_file(year, file_to_backup):
-            self._backup_file_to_path(output_path, year, file_to_backup)
+            self._backup_file_to_path(output_path, file_to_backup)
 
     def _backup_path(self, input_path: str):
         self.logger_util.write(f"Processing input path {input_path}...")

@@ -1,5 +1,6 @@
 import os
 import zlib
+from datetime import datetime
 from functools import cached_property
 
 from mediabackup import file_util
@@ -28,6 +29,10 @@ class FileData:
     @cached_property
     def size(self) -> int:
         return os.path.getsize(self.absolute_path)
+
+    @cached_property
+    def modified_time(self) -> datetime:
+        return datetime.utcfromtimestamp(os.path.getmtime(self.absolute_path))
 
     @cached_property
     def is_image(self) -> bool:
