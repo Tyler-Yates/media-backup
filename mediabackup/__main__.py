@@ -20,7 +20,7 @@ def main():
 
         input_paths.extend(config["input_paths"])
         output_paths.extend(config["output_paths"])
-        healthcheck_url = config["healthcheck_url"]
+        healthcheck_url = config.get("healthcheck_url", None)
 
     print(f"Backing up the following paths:\n{NEWLINE.join(input_paths)}\n")
     print(f"Backing up to the following paths:\n{NEWLINE.join(output_paths)}\n")
