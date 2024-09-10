@@ -3,3 +3,5 @@ logs
 recency.pickle
 .idea/
 venv/
+config.backup.json
+__pycache__/
