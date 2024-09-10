@@ -1,3 +1,5 @@
 config.json
 logs
 recency.pickle
+.idea/
+venv/
