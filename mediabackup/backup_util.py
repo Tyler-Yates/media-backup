@@ -124,6 +124,8 @@ class BackupUtil:
                 parts.append("Photos")
             elif file_data.is_video:
                 parts.append("Videos")
+            else:
+                raise ValueError("Unknown file format!")
 
             # Then the year
             parts.append(str(file_data.get_file_date.year))

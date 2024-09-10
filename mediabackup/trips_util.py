@@ -13,9 +13,9 @@ class TripsUtil:
         trips = []
 
         for trip_name, config in trips_config.items():
-            start_date = datetime.strptime(config["start_date"], '%Y:%m:%d')
+            start_date = datetime.strptime(config["start_date"], '%Y-%m-%d')
 
-            end_date = datetime.strptime(config["end_date"], '%Y:%m:%d')
+            end_date = datetime.strptime(config["end_date"], '%Y-%m-%d')
             # Set end_date to the last possible instant of that day
             end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
