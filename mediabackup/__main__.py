@@ -6,6 +6,7 @@ import requests as requests
 from mediabackup.backup_util import BackupUtil
 from mediabackup.logger_util import LoggerUtil
 from mediabackup.recency_util import RecencyUtil
+from mediabackup.trips_util import TripsUtil
 
 NEWLINE = "\n"
 
@@ -21,15 +22,17 @@ def main():
         input_paths.extend(config["input_paths"])
         output_paths.extend(config["output_paths"])
         healthcheck_url = config.get("healthcheck_url", None)
+        trips_config = config.get("trips", dict())
 
     print(f"Backing up the following paths:\n{NEWLINE.join(input_paths)}\n")
     print(f"Backing up to the following paths:\n{NEWLINE.join(output_paths)}\n")
 
     logger_util = LoggerUtil()
     recency_util = RecencyUtil()
+    trips_util = TripsUtil(trips_config)
     with logger_util:
         backup_util = BackupUtil(input_paths=input_paths, output_paths=output_paths, logger_util=logger_util,
-                                 recency_util=recency_util)
+                                 recency_util=recency_util, trips_util=trips_util)
         backup_util.perform_backup()
 
     recency_util.clean_records()

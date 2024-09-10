@@ -200,16 +200,17 @@ def should_ignore_file(file_path: str) -> bool:
     return False
 
 
-def get_file_year(absolute_file_path: str):
+def get_file_date(absolute_file_path: str) -> datetime:
     with open(absolute_file_path, mode='rb') as input_file:
+        # noinspection PyTypeChecker
         tags = exifread.process_file(input_file)
         date_taken = tags.get('EXIF DateTimeOriginal', None)
 
     if date_taken:
         date_taken = datetime.strptime(str(date_taken), '%Y:%m:%d %H:%M:%S')
-        return date_taken.year
+        return date_taken
 
     modified_time = datetime.utcfromtimestamp(os.path.getmtime(absolute_file_path))
     creation_time = datetime.utcfromtimestamp(os.path.getctime(absolute_file_path))
     oldest_time = min(modified_time, creation_time)
-    return oldest_time.year
+    return oldest_time

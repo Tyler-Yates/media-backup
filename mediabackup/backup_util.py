@@ -8,15 +8,17 @@ from mediabackup import file_util
 from mediabackup.file_data import FileData
 from mediabackup.logger_util import LoggerUtil
 from mediabackup.recency_util import RecencyUtil
+from mediabackup.trips_util import TripsUtil
 
 
 class BackupUtil:
     def __init__(self, input_paths: list[str], output_paths: list[str], logger_util: LoggerUtil,
-                 recency_util: RecencyUtil):
+                 recency_util: RecencyUtil, trips_util: TripsUtil):
         self.input_paths = input_paths
         self.output_paths = output_paths
         self.logger_util = logger_util
         self.recency_util = recency_util
+        self.trips_util = trips_util
 
         self.year_to_paths_to_backup: dict[int, list[FileData]] = defaultdict(list)
         self.output_path_to_file_name_to_existing_file_data: dict[str, dict[str, list[FileData]]] = defaultdict(
@@ -39,8 +41,8 @@ class BackupUtil:
             return
 
         print(f"Found {absolute_path}")
-        year_taken = file_util.get_file_year(absolute_path)
-        self.year_to_paths_to_backup[year_taken].append(FileData(absolute_path))
+        year_taken = file_date.get_file_date.year
+        self.year_to_paths_to_backup[year_taken].append(file_date)
 
     def _collect_existing_files_for_templated_path(self, templated_path: str):
         for root, dirs, files in os.walk(templated_path):
@@ -85,8 +87,8 @@ class BackupUtil:
 
         self.recency_util.record_file_processed(file_to_backup)
 
-    def _backup_file(self, year: int, file_to_backup: FileData):
-        for output_path in self._get_output_paths_for_file(year, file_to_backup):
+    def _backup_file(self, file_to_backup: FileData):
+        for output_path in self._get_output_paths_for_file(file_to_backup):
             self._backup_file_to_path(output_path, file_to_backup)
 
     def _backup_path(self, input_path: str):
@@ -100,7 +102,7 @@ class BackupUtil:
 
         for year, files_to_backup in self.year_to_paths_to_backup.items():
             for file_to_backup in files_to_backup:
-                self._backup_file(year, file_to_backup)
+                self._backup_file(file_to_backup)
 
     @staticmethod
     def _get_photo_path(output_path: str, year: int):
@@ -110,11 +112,30 @@ class BackupUtil:
     def _get_video_path(output_path: str, year: int):
         return os.path.join(output_path, "Videos", str(year))
 
-    def _get_output_paths_for_file(self, year: int, file_data: FileData) -> list[str]:
-        if file_data.is_image:
-            return [self._get_photo_path(output_path, year) for output_path in self.output_paths]
-        elif file_data.is_video:
-            return [self._get_video_path(output_path, year) for output_path in self.output_paths]
+    def _get_output_paths_for_file(self, file_data: FileData) -> list[str]:
+        result = []
+
+        for output_path in self.output_paths:
+            # First should be the output path itself
+            parts: list[str] = [output_path]
+
+            # Next is whether it is a photo or video
+            if file_data.is_image:
+                parts.append("Photos")
+            elif file_data.is_video:
+                parts.append("Videos")
+
+            # Then the year
+            parts.append(str(file_data.get_file_date.year))
+
+            # Finally the trip if we are part of a trip
+            trip = self.trips_util.get_trip_subfolder(file_data.get_file_date)
+            if trip:
+                parts.append(trip)
+
+            result.append(str(os.path.join(*parts)))
+
+        return result
 
     def perform_backup(self):
         self.year_to_paths_to_backup.clear()

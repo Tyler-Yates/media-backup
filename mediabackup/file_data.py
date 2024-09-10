@@ -4,6 +4,7 @@ from datetime import datetime
 from functools import cached_property
 
 from mediabackup import file_util
+from mediabackup.file_util import get_file_date
 
 
 class FileData:
@@ -41,3 +42,7 @@ class FileData:
     @cached_property
     def is_video(self) -> bool:
         return file_util.is_video(self.absolute_path)
+
+    @cached_property
+    def get_file_date(self) -> datetime:
+        return get_file_date(self.absolute_path)
