@@ -128,7 +128,8 @@ IMAGE_EXTENSIONS = frozenset([
     "tga",
     "heic",
     "heif",
-    "rw2"
+    "rw2",
+    "dng"
 ])
 
 # Taken from https://gist.github.com/aaomidi/0a3b5c9bd563c9e012518b495410dc0e
